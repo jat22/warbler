@@ -27,28 +27,6 @@ class Follows(db.Model):
     )
 
 
-class Likes(db.Model):
-    """Mapping user likes to warbles."""
-
-    __tablename__ = 'likes' 
-
-    id = db.Column(
-        db.Integer,
-        primary_key=True
-    )
-
-    user_id = db.Column(
-        db.Integer,
-        db.ForeignKey('users.id', ondelete='cascade')
-    )
-
-    message_id = db.Column(
-        db.Integer,
-        db.ForeignKey('messages.id', ondelete='cascade'),
-        unique=True
-    )
-
-
 class User(db.Model):
     """User in the system."""
 
@@ -131,7 +109,7 @@ class User(db.Model):
         return len(found_user_list) == 1
 
     @classmethod
-    def signup(cls, username, email, password, image_url):
+    def signup(cls, username, email, password, image_url, header_image_url):
         """Sign up user.
 
         Hashes password and adds user to system.
@@ -144,6 +122,7 @@ class User(db.Model):
             email=email,
             password=hashed_pwd,
             image_url=image_url,
+            header_image_url=header_image_url
         )
 
         db.session.add(user)
@@ -208,3 +187,23 @@ def connect_db(app):
 
     db.app = app
     db.init_app(app)
+
+class Likes(db.Model):
+    """Mapping user likes to warbles."""
+
+    __tablename__ = 'likes' 
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id', ondelete='cascade')
+    )
+
+    message_id = db.Column(
+        db.Integer,
+        db.ForeignKey('messages.id', ondelete='cascade'),
+    )

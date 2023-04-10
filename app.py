@@ -6,7 +6,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, UpdateProfileForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -19,7 +19,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
-app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
 toolbar = DebugToolbarExtension(app)
 
@@ -180,6 +180,20 @@ def users_followers(user_id):
     user = User.query.get_or_404(user_id)
     return render_template('users/followers.html', user=user)
 
+@app.route('/users/<int:user_id>/likes')
+def user_likes(user_id):
+    """Show list of messages liked by current user."""
+    
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+
+    user = User.query.get_or_404(user_id)
+    messages = Message.query.filter(
+        Message.id.in_([msg.id for msg in user.likes])
+        )
+    liked_msgs = [like.message_id for like in Likes.query.filter_by(user_id=g.user.id)]
+
+    return render_template('users/show.html', messages=messages, user=user, likes=liked_msgs)
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
 def add_follow(follow_id):
@@ -251,6 +265,25 @@ def delete_user():
     return redirect("/signup")
 
 
+@app.route('/users/add_like/<int:msg_id>', methods=['POST'])
+def add_like(msg_id):
+    """Add like to a message"""
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+
+    user_msg_ids = [msg.id for msg in Message.query.filter_by(user_id=g.user.id)]
+    user_likes_msg_ids = [like.message_id for like in Likes.query.filter_by(user_id=g.user.id)]
+
+    if msg_id not in user_likes_msg_ids and msg_id not in user_msg_ids:
+        new_like = Likes(user_id=g.user.id, message_id=msg_id)
+        db.session.add(new_like)
+        db.session.commit()
+        return redirect(request.referrer)
+    else:
+        Likes.query.filter_by(message_id=msg_id, user_id=g.user.id).delete()
+        db.session.commit()
+    return redirect(request.referrer)
+
 ##############################################################################
 # Messages routes:
 
@@ -299,7 +332,6 @@ def messages_destroy(message_id):
 
     return redirect(f"/users/{g.user.id}")
 
-
 ##############################################################################
 # Homepage and error pages
 
@@ -321,7 +353,9 @@ def homepage():
                     .limit(100)
                     .all())
 
-        return render_template('home.html', messages=messages)
+        liked_msgs = [like.message_id for like in Likes.query.filter_by(user_id=g.user.id)]
+
+        return render_template('home.html', messages=messages, likes=liked_msgs)
 
     else:
         return render_template('home-anon.html')
