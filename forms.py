@@ -28,6 +28,8 @@ class LoginForm(FlaskForm):
 class UpdateProfileForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     email = StringField('E-mail', validators=[DataRequired(), Email()])
+    location = StringField('Location')
     image_url = StringField('(Optional) Image URL')
     header_image_url = StringField('Optional Header Image URL')
+    bio = TextAreaField('Bio')
     password = PasswordField('Password', validators=[DataRequired(message='Please enter your password.')])

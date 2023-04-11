@@ -116,6 +116,7 @@ def logout():
     """Handle logout of user."""
 
     do_logout()
+    flash("You have been logged out.", "success")
     return redirect('/login')
 
 ##############################################################################
@@ -238,8 +239,10 @@ def profile():
         if User.authenticate(g.user.username, form.password.data):
             g.user.username = form.username.data
             g.user.email = form.email.data
+            g.user.location = form.location.data
             g.user.image_url = form.image_url.data
             g.user.header_image_url = form.header_image_url.data
+            g.user.bio = form.bio.data
             db.session.commit()
             return redirect(f"/users/{g.user.id}")
         else:
@@ -268,6 +271,7 @@ def delete_user():
 @app.route('/users/add_like/<int:msg_id>', methods=['POST'])
 def add_like(msg_id):
     """Add like to a message"""
+
     if not g.user:
         flash("Access unauthorized.", "danger")
 
@@ -314,7 +318,7 @@ def messages_add():
 def messages_show(message_id):
     """Show a message."""
 
-    msg = Message.query.get(message_id)
+    msg = Message.query.get_or_404(message_id)
     return render_template('messages/show.html', message=msg)
 
 
